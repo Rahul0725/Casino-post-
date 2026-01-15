@@ -49,14 +49,12 @@ const App: React.FC = () => {
     setIsUpdating(true);
     setUpdateSuccess(false);
     
-    // Simulate a brief processing time for better UX
     setTimeout(() => {
       setPostData({ ...formData });
       setIsUpdating(false);
       setUpdateSuccess(true);
       if (window.navigator.vibrate) window.navigator.vibrate(100);
       
-      // Auto-scroll to previews for better feedback
       if (previewsRef.current) {
         previewsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -78,13 +76,12 @@ const App: React.FC = () => {
     
     try {
       const result = await generateAiPost(formData);
-      if (result.startsWith('❌') || result.startsWith('⚠️')) {
-        setAiError(result);
-      } else {
-        setAiResult(result);
-      }
-    } catch (err) {
-      setAiError("Failed to connect to AI server. Please try again.");
+      setAiResult(result);
+    } catch (err: any) {
+      // Show the actual error message so the user knows what's wrong
+      const msg = err?.message || "Check your internet connection and try again.";
+      setAiError(`AI Error: ${msg}`);
+      console.error("AI Generation Failed:", err);
     } finally {
       setAiLoading(false);
     }
@@ -187,7 +184,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* SUBMIT BUTTON */}
         <button 
           onClick={handleApplyChanges}
           disabled={isUpdating}
@@ -273,7 +269,7 @@ const App: React.FC = () => {
       {aiError && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex gap-3 items-center animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="text-red-500 shrink-0" size={20} />
-          <p className="text-sm text-red-400 font-medium">{aiError}</p>
+          <p className="text-sm text-red-400 font-medium whitespace-pre-wrap">{aiError}</p>
         </div>
       )}
 
