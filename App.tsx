@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Layout from './components/Layout';
-import { View, PostData, Template } from './types';
-import { TEMPLATES } from './constants';
-import { styleText, toBold } from './utils/unicode';
-import { generateAiPost } from './services/geminiService';
+import Layout from './components/Layout.tsx';
+import { View, PostData, Template } from './types.ts';
+import { TEMPLATES } from './constants.tsx';
+import { styleText, toBold } from './utils/unicode.ts';
+import { generateAiPost } from './services/geminiService.ts';
 import { Copy, Check, Info, Trash2, Zap, Send, Sparkles, MessageSquare, ExternalLink, Save, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {

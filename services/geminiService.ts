@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { PostData } from "../types";
+import { PostData } from "../types.ts";
 
 export const generateAiPost = async (data: PostData): Promise<string> => {
   // Always initialize fresh to ensure current API key is used

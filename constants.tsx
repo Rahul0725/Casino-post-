@@ -1,6 +1,6 @@
 
-import { Template, PostData } from './types';
-import { toBold } from './utils/unicode';
+import { Template, PostData } from './types.ts';
+import { toBold } from './utils/unicode.ts';
 
 const getVal = (val: string, fallback: string) => val.trim() || fallback;
 
