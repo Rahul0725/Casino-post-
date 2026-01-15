@@ -5,18 +5,17 @@ import { View, PostData, Template } from './types';
 import { TEMPLATES } from './constants';
 import { styleText, toBold } from './utils/unicode';
 import { generateAiPost } from './services/geminiService';
-// Added Crown to the imports from lucide-react to fix "Cannot find name 'Crown'" error
-import { Copy, Check, Info, Trash2, Zap, Send, Sparkles, MessageSquare, Crown } from 'lucide-react';
+import { Copy, Check, Info, Trash2, Zap, Send, Sparkles, MessageSquare, Crown, ExternalLink } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>(View.HOME);
+  const [currentView, setCurrentView] = useState<View>(View.BUILDER); // Default to builder as requested
   const [postData, setPostData] = useState<PostData>({
-    casinoName: '',
+    casinoName: 'Billionaire Casino',
     signupBonus: '₹500',
     wager: '1x',
     minWithdrawal: '₹500',
-    paymentType: 'Instant UPI',
-    promoLink: 'https://bit.ly/loot-cas',
+    paymentType: 'Verified ✅',
+    promoLink: '@OffersGod', // Updated default link as requested
     contactId: '@Admin_Loot'
   });
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -25,10 +24,14 @@ const App: React.FC = () => {
   const [customText, setCustomText] = useState('');
 
   const copyToClipboard = useCallback((text: string, id: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(id);
       if (window.navigator.vibrate) window.navigator.vibrate(50);
       setTimeout(() => setCopiedId(null), 2000);
+    }).catch(err => {
+      console.error("Clipboard error:", err);
+      alert("Failed to copy. Please try manually selecting text.");
     });
   }, []);
 
@@ -60,7 +63,6 @@ const App: React.FC = () => {
                 </span>
                 <h3 className="text-lg font-bold text-slate-100 mt-1">{template.name}</h3>
               </div>
-              {/* Added Crown icon for premium templates */}
               {template.isPremium && <Crown size={16} className="text-amber-500" />}
             </div>
             <div className="bg-slate-900 rounded-xl p-3 mb-4 font-mono text-xs text-slate-400 whitespace-pre-wrap line-clamp-4 relative">
@@ -68,12 +70,11 @@ const App: React.FC = () => {
             </div>
             <button 
               onClick={() => {
-                setPostData({...postData});
                 setCurrentView(View.BUILDER);
               }}
               className="w-full py-2 bg-slate-700 hover:bg-blue-600 text-white rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
             >
-              Use This Template <Zap size={14} />
+              Edit in Builder <Zap size={14} />
             </button>
           </div>
         ))}
@@ -83,7 +84,7 @@ const App: React.FC = () => {
 
   const renderBuilder = () => (
     <div className="p-4 space-y-6">
-      <div className="bg-slate-800/80 rounded-3xl p-6 border border-slate-700 space-y-4">
+      <div className="bg-slate-800/80 rounded-3xl p-6 border border-slate-700 space-y-4 shadow-xl">
         <h2 className="text-xl font-black text-white flex items-center gap-2">
           <Zap className="text-blue-500" /> Quick Builder
         </h2>
@@ -95,7 +96,7 @@ const App: React.FC = () => {
               value={postData.casinoName}
               onChange={(e) => setPostData({...postData, casinoName: e.target.value})}
               placeholder="e.g. Stake India"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
           <div>
@@ -103,7 +104,8 @@ const App: React.FC = () => {
             <input 
               value={postData.signupBonus}
               onChange={(e) => setPostData({...postData, signupBonus: e.target.value})}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white"
+              placeholder="₹500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -111,7 +113,8 @@ const App: React.FC = () => {
             <input 
               value={postData.wager}
               onChange={(e) => setPostData({...postData, wager: e.target.value})}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white"
+              placeholder="1x"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -119,7 +122,8 @@ const App: React.FC = () => {
             <input 
               value={postData.minWithdrawal}
               onChange={(e) => setPostData({...postData, minWithdrawal: e.target.value})}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white"
+              placeholder="₹500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -127,35 +131,41 @@ const App: React.FC = () => {
             <input 
               value={postData.paymentType}
               onChange={(e) => setPostData({...postData, paymentType: e.target.value})}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white"
+              placeholder="Instant UPI"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div className="col-span-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Referral Link</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Referral Link / Bot ID</label>
             <input 
               value={postData.promoLink}
               onChange={(e) => setPostData({...postData, promoLink: e.target.value})}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white"
+              placeholder="@OffersGod"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
       <div className="space-y-4">
-        <h3 className="font-bold text-slate-400 uppercase text-xs tracking-widest">Live Previews</h3>
-        <div className="space-y-4">
+        <div className="flex justify-between items-center px-2">
+          <h3 className="font-bold text-slate-400 uppercase text-xs tracking-widest">Live Previews</h3>
+          <span className="text-[10px] text-slate-600 bg-slate-800 px-2 py-0.5 rounded">Real-time update</span>
+        </div>
+        
+        <div className="space-y-6">
           {TEMPLATES.slice(0, 5).map(temp => (
-            <div key={temp.id} className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700">
-              <div className="p-4 bg-slate-700/30 border-b border-slate-700 flex justify-between items-center">
-                <span className="font-bold text-sm">{temp.name}</span>
+            <div key={temp.id} className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-lg">
+              <div className="p-3 px-4 bg-slate-700/30 border-b border-slate-700 flex justify-between items-center">
+                <span className="font-bold text-sm text-slate-200">{temp.name}</span>
                 <button 
                   onClick={() => copyToClipboard(temp.content(postData), temp.id)}
-                  className={`p-2 rounded-lg transition-all ${copiedId === temp.id ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-500'}`}
+                  className={`p-2 rounded-lg transition-all flex items-center gap-2 text-xs font-bold ${copiedId === temp.id ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-500 active:scale-90'}`}
                 >
-                  {copiedId === temp.id ? <Check size={16} /> : <Copy size={16} />}
+                  {copiedId === temp.id ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
                 </button>
               </div>
-              <div className="p-4 font-mono text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+              <div className="p-4 font-mono text-sm text-slate-300 whitespace-pre-wrap leading-relaxed min-h-[100px] bg-slate-900/40">
                 {temp.content(postData)}
               </div>
             </div>
@@ -175,7 +185,7 @@ const App: React.FC = () => {
           <h2 className="text-2xl font-black">AI Magic Generator</h2>
           <p className="text-indigo-100 text-sm opacity-90">
             Create ultra high-converting posts using Gemini AI. 
-            Trained on 10,000+ successful Telegram loot groups.
+            Optimized for maximum click-through rates.
           </p>
           <button 
             disabled={aiLoading}
@@ -183,9 +193,9 @@ const App: React.FC = () => {
             className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-95 ${aiLoading ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-white text-indigo-600 hover:bg-indigo-50'}`}
           >
             {aiLoading ? (
-              <span className="flex items-center gap-2">Processing... <Zap className="animate-pulse" /></span>
+              <span className="flex items-center gap-2">Generating... <Zap className="animate-pulse" /></span>
             ) : (
-              <>GENERATE POST <Sparkles size={20} /></>
+              <>GENERATE AI POST <Sparkles size={20} /></>
             )}
           </button>
         </div>
@@ -194,10 +204,10 @@ const App: React.FC = () => {
       {aiResult && (
         <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-300 flex items-center gap-2"><Send size={16} /> AI Output</h3>
+            <h3 className="font-bold text-slate-300 flex items-center gap-2"><Send size={16} /> AI Optimized Post</h3>
             <button 
               onClick={() => copyToClipboard(aiResult, 'ai-out')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${copiedId === 'ai-out' ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${copiedId === 'ai-out' ? 'bg-green-500 text-white' : 'bg-blue-600 text-white active:scale-90'}`}
             >
               {copiedId === 'ai-out' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Post</>}
             </button>
@@ -264,7 +274,7 @@ const App: React.FC = () => {
       <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-4 flex gap-3">
         <Info className="text-blue-500 shrink-0" size={20} />
         <p className="text-xs text-blue-300/80 leading-relaxed">
-          These fonts are generated using mathematical Unicode characters. They are safe for Telegram, WhatsApp, and IG bios, and won't show as boxes on modern Android/iOS devices.
+          These fonts are generated using mathematical Unicode characters. They are safe for Telegram, WhatsApp, and IG bios.
         </p>
       </div>
     </div>
@@ -273,7 +283,6 @@ const App: React.FC = () => {
   const renderPremium = () => (
     <div className="p-8 space-y-8 flex flex-col items-center text-center h-full justify-center">
       <div className="w-24 h-24 bg-gradient-to-tr from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-amber-500/20">
-        {/* Added Crown icon for premium view */}
         <Crown size={48} className="text-white" />
       </div>
       <div className="space-y-2">
@@ -294,13 +303,6 @@ const App: React.FC = () => {
           <div>
             <h4 className="font-bold text-white">Unlimited AI Generations</h4>
             <p className="text-xs text-slate-500">No daily limits on Gemini AI generation.</p>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-4 rounded-2xl border border-amber-500/30 text-left flex items-start gap-4">
-          <Trash2 className="text-amber-500 shrink-0" />
-          <div>
-            <h4 className="font-bold text-white">No Watermarks</h4>
-            <p className="text-xs text-slate-500">Professional posts without "Made with BonusPost".</p>
           </div>
         </div>
       </div>
