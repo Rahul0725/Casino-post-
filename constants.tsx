@@ -68,7 +68,6 @@ ${getVal(d.promoLink, '@OffersGod')}
     id: 'vip-1',
     name: 'VIP High Roller',
     category: 'VIP',
-    isPremium: true,
     content: (d: PostData) => `
 💎 ${toBold('VIP EXCLUSIVE OFFER')} 💎
 
@@ -132,7 +131,6 @@ for(let i=7; i<=30; i++) {
     id: `temp-${i}`,
     name: `Template Variation ${i}`,
     category: i % 3 === 0 ? 'VIP' : (i % 2 === 0 ? 'Aggressive' : 'Loot'),
-    isPremium: i > 12,
     content: (d: PostData) => `
 🔥 ${toBold('BONUS OFFER #' + i)} 🔥
 ${toBold(getVal(d.casinoName, 'BRAND NAME'))}

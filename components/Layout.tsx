@@ -6,7 +6,6 @@ import {
   PlusSquare, 
   Type as FontIcon, 
   Sparkles, 
-  Crown,
   Share2
 } from 'lucide-react';
 
@@ -29,12 +28,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onViewChange }) =
             BonusPost
           </h1>
         </div>
-        <button 
-          onClick={() => onViewChange(View.PREMIUM)}
-          className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20 text-xs font-bold flex items-center gap-1 hover:bg-amber-500/20 transition-all"
-        >
-          <Crown size={12} /> PRO
-        </button>
+        <div className="text-[10px] font-bold text-blue-400 border border-blue-400/30 px-2 py-0.5 rounded-full uppercase tracking-widest">
+          Free Forever
+        </div>
       </header>
 
       {/* Main Content */}

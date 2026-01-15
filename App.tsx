@@ -1,27 +1,38 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from './components/Layout';
 import { View, PostData, Template } from './types';
 import { TEMPLATES } from './constants';
 import { styleText, toBold } from './utils/unicode';
 import { generateAiPost } from './services/geminiService';
-import { Copy, Check, Info, Trash2, Zap, Send, Sparkles, MessageSquare, Crown, ExternalLink } from 'lucide-react';
+import { Copy, Check, Info, Trash2, Zap, Send, Sparkles, MessageSquare, ExternalLink, Save, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>(View.BUILDER); // Default to builder as requested
+  const [currentView, setCurrentView] = useState<View>(View.BUILDER);
+  
+  // Real post data that drives the templates
   const [postData, setPostData] = useState<PostData>({
     casinoName: 'Billionaire Casino',
     signupBonus: '₹500',
     wager: '1x',
     minWithdrawal: '₹500',
     paymentType: 'Verified ✅',
-    promoLink: '@OffersGod', // Updated default link as requested
+    promoLink: '@OffersGod',
     contactId: '@Admin_Loot'
   });
+
+  // Draft state for the form inputs
+  const [formData, setFormData] = useState<PostData>({ ...postData });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
+  const [aiError, setAiError] = useState<string | null>(null);
   const [customText, setCustomText] = useState('');
+  
+  const previewsRef = useRef<HTMLDivElement>(null);
 
   const copyToClipboard = useCallback((text: string, id: string) => {
     if (!text) return;
@@ -31,30 +42,63 @@ const App: React.FC = () => {
       setTimeout(() => setCopiedId(null), 2000);
     }).catch(err => {
       console.error("Clipboard error:", err);
-      alert("Failed to copy. Please try manually selecting text.");
     });
   }, []);
 
+  const handleApplyChanges = () => {
+    setIsUpdating(true);
+    setUpdateSuccess(false);
+    
+    // Simulate a brief processing time for better UX
+    setTimeout(() => {
+      setPostData({ ...formData });
+      setIsUpdating(false);
+      setUpdateSuccess(true);
+      if (window.navigator.vibrate) window.navigator.vibrate(100);
+      
+      // Auto-scroll to previews for better feedback
+      if (previewsRef.current) {
+        previewsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      
+      setTimeout(() => setUpdateSuccess(false), 3000);
+    }, 400);
+  };
+
   const handleAiGenerate = async () => {
-    if (!postData.casinoName) {
-      alert("Please enter a casino name first!");
+    if (!formData.casinoName) {
+      alert("Please enter a casino name in the Builder first!");
+      setCurrentView(View.BUILDER);
       return;
     }
+    
     setAiLoading(true);
-    const result = await generateAiPost(postData);
-    setAiResult(result);
-    setAiLoading(false);
+    setAiError(null);
+    setAiResult('');
+    
+    try {
+      const result = await generateAiPost(formData);
+      if (result.startsWith('❌') || result.startsWith('⚠️')) {
+        setAiError(result);
+      } else {
+        setAiResult(result);
+      }
+    } catch (err) {
+      setAiError("Failed to connect to AI server. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const renderHome = () => (
     <div className="p-4 space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-black text-white">Top Templates</h2>
-        <p className="text-slate-400 text-sm">Pick a base to start your promotion</p>
+        <p className="text-slate-400 text-sm">All premium templates are now unlocked for everyone!</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {TEMPLATES.slice(0, 10).map((template) => (
+        {TEMPLATES.slice(0, 15).map((template) => (
           <div key={template.id} className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 hover:border-blue-500/50 transition-all group">
             <div className="flex justify-between items-start mb-3">
               <div>
@@ -63,15 +107,12 @@ const App: React.FC = () => {
                 </span>
                 <h3 className="text-lg font-bold text-slate-100 mt-1">{template.name}</h3>
               </div>
-              {template.isPremium && <Crown size={16} className="text-amber-500" />}
             </div>
             <div className="bg-slate-900 rounded-xl p-3 mb-4 font-mono text-xs text-slate-400 whitespace-pre-wrap line-clamp-4 relative">
               {template.content(postData)}
             </div>
             <button 
-              onClick={() => {
-                setCurrentView(View.BUILDER);
-              }}
+              onClick={() => setCurrentView(View.BUILDER)}
               className="w-full py-2 bg-slate-700 hover:bg-blue-600 text-white rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
             >
               Edit in Builder <Zap size={14} />
@@ -93,79 +134,105 @@ const App: React.FC = () => {
           <div className="col-span-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Casino Name</label>
             <input 
-              value={postData.casinoName}
-              onChange={(e) => setPostData({...postData, casinoName: e.target.value})}
-              placeholder="e.g. Stake India"
+              value={formData.casinoName}
+              onChange={(e) => setFormData({...formData, casinoName: e.target.value})}
+              placeholder="e.g. Billionaire Casino"
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Signup Bonus</label>
             <input 
-              value={postData.signupBonus}
-              onChange={(e) => setPostData({...postData, signupBonus: e.target.value})}
+              value={formData.signupBonus}
+              onChange={(e) => setFormData({...formData, signupBonus: e.target.value})}
               placeholder="₹500"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none"
             />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Wager</label>
             <input 
-              value={postData.wager}
-              onChange={(e) => setPostData({...postData, wager: e.target.value})}
+              value={formData.wager}
+              onChange={(e) => setFormData({...formData, wager: e.target.value})}
               placeholder="1x"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none"
             />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Min Withdraw</label>
             <input 
-              value={postData.minWithdrawal}
-              onChange={(e) => setPostData({...postData, minWithdrawal: e.target.value})}
+              value={formData.minWithdrawal}
+              onChange={(e) => setFormData({...formData, minWithdrawal: e.target.value})}
               placeholder="₹500"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none"
             />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Payment</label>
             <input 
-              value={postData.paymentType}
-              onChange={(e) => setPostData({...postData, paymentType: e.target.value})}
-              placeholder="Instant UPI"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              value={formData.paymentType}
+              onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
+              placeholder="Verified ✅"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none"
             />
           </div>
           <div className="col-span-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Referral Link / Bot ID</label>
             <input 
-              value={postData.promoLink}
-              onChange={(e) => setPostData({...postData, promoLink: e.target.value})}
+              value={formData.promoLink}
+              onChange={(e) => setFormData({...formData, promoLink: e.target.value})}
               placeholder="@OffersGod"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none"
             />
           </div>
         </div>
+
+        {/* SUBMIT BUTTON */}
+        <button 
+          onClick={handleApplyChanges}
+          disabled={isUpdating}
+          className={`w-full py-4 mt-2 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg ${
+            updateSuccess 
+            ? 'bg-green-500 text-white shadow-green-500/20' 
+            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
+          }`}
+        >
+          {isUpdating ? (
+            <span className="flex items-center gap-2">
+              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              APPLYING...
+            </span>
+          ) : updateSuccess ? (
+            <><Check size={24} /> CHANGES APPLIED!</>
+          ) : (
+            <><Save size={20} /> SUBMIT & GENERATE</>
+          )}
+        </button>
       </div>
 
-      <div className="space-y-4">
+      <div ref={previewsRef} className="space-y-4 pt-4">
         <div className="flex justify-between items-center px-2">
-          <h3 className="font-bold text-slate-400 uppercase text-xs tracking-widest">Live Previews</h3>
-          <span className="text-[10px] text-slate-600 bg-slate-800 px-2 py-0.5 rounded">Real-time update</span>
+          <h3 className="font-bold text-slate-400 uppercase text-xs tracking-widest">Post Previews</h3>
+          {updateSuccess && (
+            <span className="text-[10px] text-green-400 font-bold bg-green-400/10 px-2 py-1 rounded animate-bounce">
+              PREVIEWS UPDATED
+            </span>
+          )}
         </div>
         
         <div className="space-y-6">
-          {TEMPLATES.slice(0, 5).map(temp => (
-            <div key={temp.id} className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-lg">
+          {TEMPLATES.slice(0, 15).map(temp => (
+            <div key={temp.id} className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-lg group hover:border-slate-600 transition-colors">
               <div className="p-3 px-4 bg-slate-700/30 border-b border-slate-700 flex justify-between items-center">
                 <span className="font-bold text-sm text-slate-200">{temp.name}</span>
                 <button 
                   onClick={() => copyToClipboard(temp.content(postData), temp.id)}
-                  className={`p-2 rounded-lg transition-all flex items-center gap-2 text-xs font-bold ${copiedId === temp.id ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-500 active:scale-90'}`}
+                  className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-bold ${copiedId === temp.id ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-500 active:scale-90'}`}
                 >
-                  {copiedId === temp.id ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                  {copiedId === temp.id ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Post</>}
                 </button>
               </div>
-              <div className="p-4 font-mono text-sm text-slate-300 whitespace-pre-wrap leading-relaxed min-h-[100px] bg-slate-900/40">
+              <div className="p-4 font-mono text-sm text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-900/40">
                 {temp.content(postData)}
               </div>
             </div>
@@ -184,8 +251,7 @@ const App: React.FC = () => {
         <div className="relative z-10 space-y-4">
           <h2 className="text-2xl font-black">AI Magic Generator</h2>
           <p className="text-indigo-100 text-sm opacity-90">
-            Create ultra high-converting posts using Gemini AI. 
-            Optimized for maximum click-through rates.
+            Generate high-converting Hinglish posts instantly using Gemini AI. Unlocked for all users.
           </p>
           <button 
             disabled={aiLoading}
@@ -193,7 +259,10 @@ const App: React.FC = () => {
             className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-95 ${aiLoading ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-white text-indigo-600 hover:bg-indigo-50'}`}
           >
             {aiLoading ? (
-              <span className="flex items-center gap-2">Generating... <Zap className="animate-pulse" /></span>
+              <span className="flex items-center gap-2">
+                <span className="w-5 h-5 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin"></span>
+                Generating...
+              </span>
             ) : (
               <>GENERATE AI POST <Sparkles size={20} /></>
             )}
@@ -201,24 +270,31 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {aiError && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex gap-3 items-center animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="text-red-500 shrink-0" size={20} />
+          <p className="text-sm text-red-400 font-medium">{aiError}</p>
+        </div>
+      )}
+
       {aiResult && (
-        <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500 shadow-xl">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-300 flex items-center gap-2"><Send size={16} /> AI Optimized Post</h3>
+            <h3 className="font-bold text-slate-300 flex items-center gap-2"><Send size={16} /> AI Optimized Result</h3>
             <button 
               onClick={() => copyToClipboard(aiResult, 'ai-out')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${copiedId === 'ai-out' ? 'bg-green-500 text-white' : 'bg-blue-600 text-white active:scale-90'}`}
             >
-              {copiedId === 'ai-out' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Post</>}
+              {copiedId === 'ai-out' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy AI Post</>}
             </button>
           </div>
-          <div className="bg-slate-900 rounded-2xl p-4 text-slate-300 font-mono text-sm whitespace-pre-wrap border border-slate-800 shadow-inner">
+          <div className="bg-slate-900 rounded-2xl p-4 text-slate-300 font-mono text-sm whitespace-pre-wrap border border-slate-800 shadow-inner leading-relaxed">
             {aiResult}
           </div>
         </div>
       )}
 
-      {!aiResult && !aiLoading && (
+      {!aiResult && !aiLoading && !aiError && (
         <div className="text-center py-12 px-8 space-y-4 opacity-40">
           <div className="bg-slate-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
             <MessageSquare size={32} />
@@ -233,7 +309,7 @@ const App: React.FC = () => {
     <div className="p-4 space-y-6">
       <div className="space-y-4">
         <h2 className="text-2xl font-black text-white">Unicode Styler</h2>
-        <p className="text-slate-400 text-sm">Convert any text to Telegram-bold Unicode</p>
+        <p className="text-slate-400 text-sm">Convert any text to bold/italic unicode for Telegram.</p>
         
         <textarea 
           value={customText}
@@ -270,53 +346,6 @@ const App: React.FC = () => {
           </button>
         </div>
       </div>
-      
-      <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-4 flex gap-3">
-        <Info className="text-blue-500 shrink-0" size={20} />
-        <p className="text-xs text-blue-300/80 leading-relaxed">
-          These fonts are generated using mathematical Unicode characters. They are safe for Telegram, WhatsApp, and IG bios.
-        </p>
-      </div>
-    </div>
-  );
-
-  const renderPremium = () => (
-    <div className="p-8 space-y-8 flex flex-col items-center text-center h-full justify-center">
-      <div className="w-24 h-24 bg-gradient-to-tr from-amber-400 to-amber-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-amber-500/20">
-        <Crown size={48} className="text-white" />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-3xl font-black text-white">Unlock Pro Features</h2>
-        <p className="text-slate-400 max-w-xs mx-auto text-sm">Unlock everything and remove all watermarks from your generated posts.</p>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-4 w-full">
-        <div className="bg-slate-800 p-4 rounded-2xl border border-amber-500/30 text-left flex items-start gap-4">
-          <Zap className="text-amber-500 shrink-0" />
-          <div>
-            <h4 className="font-bold text-white">All 100+ Templates</h4>
-            <p className="text-xs text-slate-500">Access exclusive VIP and High-Conversion styles.</p>
-          </div>
-        </div>
-        <div className="bg-slate-800 p-4 rounded-2xl border border-amber-500/30 text-left flex items-start gap-4">
-          <Sparkles className="text-amber-500 shrink-0" />
-          <div>
-            <h4 className="font-bold text-white">Unlimited AI Generations</h4>
-            <p className="text-xs text-slate-500">No daily limits on Gemini AI generation.</p>
-          </div>
-        </div>
-      </div>
-
-      <button className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-4 rounded-2xl shadow-xl shadow-amber-500/10 transition-all">
-        GET PREMIUM - ₹499 / LIFETIME
-      </button>
-      
-      <button 
-        onClick={() => setCurrentView(View.HOME)}
-        className="text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-slate-300"
-      >
-        Maybe Later
-      </button>
     </div>
   );
 
@@ -326,7 +355,6 @@ const App: React.FC = () => {
       {currentView === View.BUILDER && renderBuilder()}
       {currentView === View.AI && renderAi()}
       {currentView === View.STYLES && renderStyles()}
-      {currentView === View.PREMIUM && renderPremium()}
     </Layout>
   );
 };

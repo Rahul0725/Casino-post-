@@ -21,6 +21,5 @@ export enum View {
   HOME = 'home',
   BUILDER = 'builder',
   STYLES = 'styles',
-  AI = 'ai',
-  PREMIUM = 'premium'
+  AI = 'ai'
 }
